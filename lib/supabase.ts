@@ -1,9 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:54321",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "missing-anon-key"
-);
+// Reads the standard names first, then the names the Vercel Supabase integration creates.
+// Each variable is written out in full so Next.js can inline it into the browser bundle.
+const url =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.NEXT_PUBLIC_NEXT_PUBLIC_SUPABASE_SUPABASE_URL ||
+  "http://localhost:54321";
+const key =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_SUPABASE_PUBLISHABLE_KEY ||
+  "missing-anon-key";
+
+export const supabase = createClient(url, key);
 
 export const COMMODITIES = ["Cocoa", "Coffee", "Cashew", "Sesame", "Ginger", "Shea", "Palm products", "Soy", "Rubber", "Cotton", "Hibiscus"];
 
