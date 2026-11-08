@@ -1,0 +1,61 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Public+Sans:wght@400;600&display=swap");
+:root{--bg:#F4F4F2;--paper:#fff;--ink:#1A1F1C;--muted:#6B746E;--line:#E3E5E1;--red:#E8381A;--orange:#FF7A1A;--green:#0E5A38;--gold:#A86A0C}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Public Sans",system-ui,sans-serif}
+h1,h2,.brand{font-family:"Bricolage Grotesque","Public Sans",sans-serif;letter-spacing:-.02em}
+h1{font-size:clamp(1.9rem,4.5vw,3rem);line-height:1.05;margin:0 0 .4em;font-weight:800}
+h2{font-size:1.3rem;margin:2rem 0 .8rem;padding-bottom:.4rem;border-bottom:2px solid var(--ink)}
+h2.sec{border:0;padding:0;margin:1.6rem 0 .8rem}h2.sec small{font:400 .85rem "Public Sans";color:var(--muted);margin-left:.6rem}
+main{max-width:1180px;margin:0 auto;padding:1.2rem 1rem 3rem}
+a{color:var(--green)}
+.nav{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:.8rem 1.25rem;background:var(--paper);border-bottom:3px solid var(--red)}
+.nav nav{display:flex;gap:1.1rem;align-items:center}.nav nav a{color:var(--ink);text-decoration:none;font-weight:600}
+.brand{font-weight:800;font-size:1.5rem;text-decoration:none;color:var(--red)!important}
+.muted{color:var(--muted)}
+input,select,textarea{font:inherit;padding:.6rem .7rem;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);width:100%}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--orange);outline-offset:1px}
+label{display:block;font-size:.85rem;color:var(--muted)}
+.btn{font:inherit;font-weight:600;background:var(--red);color:#fff;border:0;border-radius:999px;padding:.55rem 1.2rem;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.alt{background:transparent;color:var(--red);border:1px solid var(--red)}
+.link{font:inherit;background:none;border:0;color:var(--red);cursor:pointer;padding:0;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.8rem;align-items:end;margin-bottom:.8rem}
+.hero{display:grid;grid-template-columns:230px 1fr;gap:1rem}
+.cats{background:var(--paper);border-radius:10px;padding:.5rem;display:flex;flex-direction:column}
+.cats button{font:inherit;text-align:left;background:none;border:0;padding:.45rem .6rem;border-radius:6px;cursor:pointer;color:var(--ink)}
+.cats button:hover,.cats button.on{background:#FFF1EC;color:var(--red);font-weight:600}
+.banner{border-radius:10px;padding:2rem;color:#fff;background:linear-gradient(120deg,#0E5A38,#127a4b 55%,#e8a317);display:flex;flex-direction:column;justify-content:center}
+.banner p{margin:0 0 1.2rem;max-width:34em;opacity:.95}
+.search{display:flex;background:var(--paper);border-radius:999px;padding:.25rem;max-width:560px;border:2px solid var(--orange)}
+.search input{border:0;background:none;color:var(--ink)}.search input:focus-visible{outline:0}
+.trust{list-style:none;display:flex;gap:1.2rem;flex-wrap:wrap;padding:0;margin:1.2rem 0 0;font-size:.85rem}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.9rem}
+.prod{background:var(--paper);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;border:1px solid transparent}
+.prod:hover{border-color:var(--orange)}
+.thumb{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+.thumb.ph{display:grid;place-items:center;font-size:3.6rem}
+.info{padding:.8rem;display:flex;flex-direction:column;gap:.15rem;flex:1}
+.info h3{margin:0;font-size:.95rem;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.info p{margin:0;font-size:.85rem}.info .btn{margin-top:.6rem;text-align:center}
+.price{font:800 1.3rem "Bricolage Grotesque";color:var(--red)}.price small{font:400 .8rem "Public Sans";color:var(--muted)}
+.sup{margin-top:.3rem!important}
+.v{font-size:.7rem;font-weight:600;color:var(--gold);border:1px solid var(--gold);border-radius:3px;padding:0 .3rem;margin-left:.4rem}
+.tag{font-size:.7rem;background:var(--line);border-radius:3px;padding:0 .3rem;margin-left:.4rem}
+.scroll{overflow-x:auto}
+.ledger{width:100%;border-collapse:collapse;background:var(--paper);border-radius:10px;overflow:hidden}
+.ledger th{text-align:left;font-size:.8rem;color:var(--muted);padding:.6rem .7rem;border-bottom:1px solid var(--line)}
+.ledger td{padding:.7rem;border-bottom:1px solid var(--line)}.ledger tr:last-child td{border-bottom:0}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:1rem;margin-bottom:.9rem}
+.card h3{margin:0 0 .2rem;font-size:1.05rem}
+.msg{font-weight:600;color:var(--green)}
+footer{max-width:1180px;margin:0 auto;padding:1.5rem 1rem 3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+@media(max-width:760px){.hero{grid-template-columns:1fr}.cats{flex-direction:row;overflow-x:auto}.cats button{white-space:nowrap}.banner{padding:1.3rem}}
+.tl{list-style:none;margin:0;padding:0 0 0 1.2rem;border-left:2px solid var(--line)}
+.tl li{position:relative;padding:0 0 1.1rem .8rem}
+.tl li::before{content:"";position:absolute;left:-1.62rem;top:.35rem;width:.8rem;height:.8rem;border-radius:50%;background:var(--red)}
+.chat{display:flex;flex-direction:column;gap:.5rem;background:var(--paper);border-radius:10px;padding:1rem;margin:1rem 0;min-height:200px;max-height:55vh;overflow-y:auto}
+.bubble{align-self:flex-start;max-width:75%;background:var(--bg);border-radius:12px 12px 12px 2px;padding:.5rem .8rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.bubble.me{align-self:flex-end;background:#FFE9E2;border-radius:12px 12px 2px 12px}
+.bubble small{display:block;color:var(--muted);font-size:.7rem}
+.badge{background:var(--red);color:#fff;border-radius:999px;font-size:.7rem;font-weight:600;padding:.05rem .45rem;margin-left:.3rem}
+a.row{display:flex;justify-content:space-between;align-items:center;text-decoration:none;color:var(--ink)}
