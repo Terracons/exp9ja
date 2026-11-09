@@ -59,3 +59,18 @@ footer{max-width:1180px;margin:0 auto;padding:1.5rem 1rem 3rem;color:var(--muted
 .bubble small{display:block;color:var(--muted);font-size:.7rem}
 .badge{background:var(--red);color:#fff;border-radius:999px;font-size:.7rem;font-weight:600;padding:.05rem .45rem;margin-left:.3rem}
 a.row{display:flex;justify-content:space-between;align-items:center;text-decoration:none;color:var(--ink)}
+html{scroll-behavior:smooth}
+.nav{flex-wrap:wrap;gap:.5rem}.nav nav{flex-wrap:wrap;gap:.4rem 1rem;font-size:.9rem}
+.banner{margin-top:0}.banner.end{margin-top:2rem}
+.btn.alt.light{color:#fff;border-color:#fff}
+.block{margin-top:2.2rem}
+.block h3{margin:.2rem 0 .6rem;font-size:1.05rem}
+.panel{background:var(--paper);border-radius:10px;padding:1.4rem}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:.8rem;margin:.8rem 0}
+.tiles.small{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.tile{font:inherit;text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:1rem;display:flex;flex-direction:column;gap:.3rem;cursor:pointer;color:var(--ink)}
+button.tile:hover,.tile.on{border-color:var(--orange)}
+.tile .muted{font-size:.85rem}
+.em{width:2.4rem;height:2.4rem;border-radius:8px;display:grid;place-items:center;font-size:1.3rem}
+.steps{padding-left:1.2rem;margin:.6rem 0}.steps li{margin:.25rem 0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.9rem}

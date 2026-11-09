@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { supabase, fmtQty } from "@/lib/supabase";
 import { useProfile } from "@/lib/useProfile";
 
 export default function Messages() {
@@ -15,7 +15,7 @@ export default function Messages() {
     const id = new URLSearchParams(window.location.search).get("q");
     if (!id) return;
     const { data } = await supabase.from("quotes")
-      .select("*, profiles(company), rfqs(commodity,quantity_tons,destination,profiles(company))").eq("id", id).maybeSingle();
+      .select("*, profiles(company), rfqs(commodity,quantity_tons,unit,destination,profiles(company))").eq("id", id).maybeSingle();
     setQuote(data);
     if (data) supabase.rpc("mark_read", { q: id });
     setMsgs((await supabase.from("messages").select("*").eq("quote_id", id).order("created_at")).data || []);
@@ -42,8 +42,8 @@ export default function Messages() {
   const r = quote.rfqs;
   return (
     <>
-      <h1 style={{ fontSize: "2rem" }}>{r.commodity}, {Number(r.quantity_tons).toLocaleString()} tonnes to {r.destination}</h1>
-      <p className="muted">{r.profiles?.company} (buyer) and {quote.profiles?.company} (supplier). Quotation: USD {Number(quote.price_usd_per_ton).toLocaleString()} per tonne, {quote.lead_time_days} days.</p>
+      <h1 style={{ fontSize: "2rem" }}>{r.commodity}, {fmtQty(r.quantity_tons, r.unit)} to {r.destination}</h1>
+      <p className="muted">{r.profiles?.company} (buyer) and {quote.profiles?.company} (supplier). Quotation: USD {Number(quote.price_usd_per_ton).toLocaleString()} per {r.unit}, {quote.lead_time_days} days.</p>
       <div className="chat">
         {msgs.length === 0 && <p className="muted">No messages yet. Ask about specifications, samples, packaging or payment terms.</p>}
         {msgs.map((m) => (

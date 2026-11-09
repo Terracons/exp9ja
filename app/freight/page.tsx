@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase, PROVIDER_TYPES } from "@/lib/supabase";
+import { supabase, PROVIDER_TYPES, fmtQty } from "@/lib/supabase";
 import { useProfile } from "@/lib/useProfile";
 
 export default function Freight() {
@@ -29,7 +29,7 @@ function Requester({ me }: any) {
     const form = e.target, f = new FormData(form);
     const { error } = await supabase.from("freight_requests").insert({
       order_id: order.id, service: f.get("service"), destination: f.get("dest"), notes: f.get("notes"),
-      commodity: order.commodity, quantity_tons: order.quantity_tons,
+      commodity: order.commodity, quantity_tons: order.quantity_tons, unit: order.unit,
     });
     setMsg(error ? error.message : "Request sent to matching providers");
     if (!error) { form.reset(); load(); }
@@ -45,7 +45,7 @@ function Requester({ me }: any) {
       <h1 style={{ fontSize: "2rem" }}>Freight and logistics</h1>
       {order ? (
         <>
-          <h2>Request a service for {order.commodity}, {Number(order.quantity_tons).toLocaleString()} tonnes</h2>
+          <h2>Request a service for {order.commodity}, {fmtQty(order.quantity_tons, order.unit)}</h2>
           <form onSubmit={create}>
             <div className="grid">
               <label>Service<select name="service">{PROVIDER_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
@@ -98,7 +98,7 @@ function Provider({ me }: any) {
       {open.length === 0 && <p className="muted">No open requests for your service right now.</p>}
       {open.map((r) => (
         <div className="card" key={r.id}>
-          <h3>{r.commodity}, {Number(r.quantity_tons).toLocaleString()} tonnes, {r.origin} to {r.destination}</h3>
+          <h3>{r.commodity}, {fmtQty(r.quantity_tons, r.unit)}, {r.origin} to {r.destination}</h3>
           <p className="muted">{r.notes || "No notes."}</p>
           {done(r.id) ? <p className="msg">You quoted USD {done(r.id).price_usd}</p> : (
             <form onSubmit={(e) => quote(e, r.id)}>

@@ -2,8 +2,8 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 
 export const metadata = {
-  title: "NaijaBulk | Nigerian commodities, bought in bulk",
-  description: "B2B marketplace connecting international buyers with Nigerian suppliers of cocoa, cashew, sesame, ginger and more.",
+  title: "NaijaBulk Marketplace | Everything Nigerian. Delivered Worldwide.",
+  description: "Nigerian food, agricultural commodities, natural products and fashion. Buy one pack or an entire container from Nigerian suppliers.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

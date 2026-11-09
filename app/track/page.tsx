@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase, STATUSES } from "@/lib/supabase";
+import { supabase, STATUSES, fmtQty } from "@/lib/supabase";
 import { useProfile } from "@/lib/useProfile";
 
 export default function Track() {
@@ -53,7 +53,7 @@ export default function Track() {
 
   return (
     <>
-      <h1 style={{ fontSize: "2rem" }}>{order.commodity}, {Number(order.quantity_tons).toLocaleString()} tonnes</h1>
+      <h1 style={{ fontSize: "2rem" }}>{order.commodity}, {fmtQty(order.quantity_tons, order.unit)}</h1>
       {!ship ? (
         canEdit ? (
           <>

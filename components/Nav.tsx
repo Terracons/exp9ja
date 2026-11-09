@@ -11,8 +11,11 @@ export default function Nav() {
     <header className="nav">
       <Link href="/" className="brand">NaijaBulk</Link>
       <nav>
-        <Link href="/">Marketplace</Link>
-        <Link href="/providers">Providers</Link>
+        <Link href="/#shop">Shop Nigerian Products</Link>
+        <Link href="/#bulk">Source in Bulk</Link>
+        <Link href="/#categories">Categories</Link>
+        <Link href="/suppliers">Suppliers</Link>
+        <Link href="/providers">Logistics</Link>
         {profile && <Link href="/freight">Freight</Link>}
         {profile && <Link href="/inbox">Messages{total > 0 && <span className="badge" aria-label={`${total} unread`}>{total}</span>}</Link>}
         {profile && <Link href="/dashboard">Dashboard</Link>}

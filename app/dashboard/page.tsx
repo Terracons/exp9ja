@@ -1,12 +1,12 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase, COMMODITIES } from "@/lib/supabase";
+import { supabase, COMMODITIES, CATEGORIES, UNITS, categoryOf, fmtQty } from "@/lib/supabase";
 import { useProfile } from "@/lib/useProfile";
 import Thumb from "@/components/Thumb";
 
 const Commodities = ({ name = "commodity", value, onChange }: any) => (
-  <select name={name} value={value} onChange={onChange}>{COMMODITIES.map((c) => <option key={c}>{c}</option>)}</select>
+  <select name={name} value={value} onChange={onChange}>{CATEGORIES.map((g) => <optgroup key={g.name} label={g.name}>{g.items.map((c) => <option key={c}>{c}</option>)}</optgroup>)}</select>
 );
 
 export default function Dashboard() {
@@ -50,7 +50,7 @@ function Supplier({ me, bump }: any) {
       if (up.error) return setMsg(up.error.message);
       image_url = supabase.storage.from("listings").getPublicUrl(path).data.publicUrl;
     }
-    const { error } = await supabase.from("listings").insert({ image_url,
+    const { error } = await supabase.from("listings").insert({ image_url, category: categoryOf(String(f.get("commodity"))), sale_type: f.get("sale"), unit: f.get("unit"), pack_sizes: f.get("packs"),
       commodity: f.get("commodity"), title: f.get("title"), origin_state: f.get("origin"),
       moq_tons: Number(f.get("moq")), price_usd_per_ton: Number(f.get("price")),
     });
@@ -84,8 +84,11 @@ function Supplier({ me, bump }: any) {
           <label>Commodity<Commodities /></label>
           <label>Title<input name="title" placeholder="e.g. Raw cashew nuts, 2026 crop" required /></label>
           <label>Origin state<input name="origin" placeholder="Ogun" /></label>
-          <label>Min order (tonnes)<input name="moq" type="number" min="0" step="any" required /></label>
-          <label>USD per tonne<input name="price" type="number" min="0" step="any" required /></label>
+          <label>Minimum order<input name="moq" type="number" min="0" step="any" required /></label>
+          <label>USD per unit<input name="price" type="number" min="0" step="any" required /></label>
+          <label>Sold as<select name="sale"><option value="bulk">Bulk</option><option value="retail">Retail packs</option></select></label>
+          <label>Unit<select name="unit">{UNITS.map((u) => <option key={u}>{u}</option>)}</select></label>
+          <label>Pack sizes<input name="packs" placeholder="1 kg, 5 kg, 25 kg" /></label>
           <label>Photo<input name="image" type="file" accept="image/*" /></label>
         </div>
         <button className="btn">Publish</button> <span className="msg">{msg}</span>
@@ -94,7 +97,7 @@ function Supplier({ me, bump }: any) {
         <div className="products" style={{ marginTop: "1rem" }}>
           {mine.map((l) => (
             <article className="prod" key={l.id}><Thumb url={l.image_url} commodity={l.commodity} />
-              <div className="info"><h3>{l.title}</h3><p className="price">US ${Number(l.price_usd_per_ton).toLocaleString()} <small>/ tonne</small></p></div></article>
+              <div className="info"><h3>{l.title}</h3><p className="price">US ${Number(l.price_usd_per_ton).toLocaleString()} <small>/ {l.unit || "tonne"}</small></p></div></article>
           ))}
         </div>
       )}
@@ -105,14 +108,14 @@ function Supplier({ me, bump }: any) {
         const done = quoted.find((x) => x.rfq_id === r.id);
         return (
           <div className="card" key={r.id}>
-            <h3>{r.commodity}, {Number(r.quantity_tons).toLocaleString()} tonnes to {r.destination}</h3>
+            <h3>{r.commodity}, {fmtQty(r.quantity_tons, r.unit)} to {r.destination}</h3>
             <p className="muted">{r.specs || "No specifications given."}</p>
             {done ? (
               <div>
-                <p className="msg">You quoted USD {done.price_usd_per_ton} per tonne ({done.status}). <Link href={`/messages?q=${done.id}`}>Message buyer</Link></p>
+                <p className="msg">You quoted USD {done.price_usd_per_ton} per {r.unit} ({done.status}). <Link href={`/messages?q=${done.id}`}>Message buyer</Link></p>
                 {done.status === "submitted" && (
                   <form onSubmit={(e) => revise(e, done.id)} className="search" style={{ maxWidth: 340 }}>
-                    <input name="price" type="number" min="0" step="any" placeholder="New USD per tonne" required />
+                    <input name="price" type="number" min="0" step="any" placeholder="New USD per unit" required />
                     <button className="btn alt">Revise</button>
                   </form>
                 )}
@@ -120,7 +123,7 @@ function Supplier({ me, bump }: any) {
             ) : (
               <form onSubmit={(e) => sendQuote(e, r.id)}>
                 <div className="grid">
-                  <label>USD per tonne<input name="price" type="number" min="0" step="any" required /></label>
+                  <label>USD per {r.unit}<input name="price" type="number" min="0" step="any" required /></label>
                   <label>Lead time (days)<input name="days" type="number" min="1" required /></label>
                   <label>Note<input name="note" /></label>
                 </div>
@@ -152,7 +155,7 @@ function Buyer({ me, bump }: any) {
     e.preventDefault();
     const form = e.target, f = new FormData(form);
     const { error } = await supabase.from("rfqs").insert({
-      commodity: c, quantity_tons: Number(f.get("qty")), destination: f.get("dest"), specs: f.get("specs"),
+      commodity: c, quantity_tons: Number(f.get("qty")), unit: f.get("unit"), destination: f.get("dest"), specs: f.get("specs"),
     });
     setMsg(error ? error.message : "Request sent to suppliers");
     if (!error) { form.reset(); load(); }
@@ -170,7 +173,8 @@ function Buyer({ me, bump }: any) {
       <form onSubmit={addRfq}>
         <div className="grid">
           <label>Commodity<Commodities value={c} onChange={(e: any) => setC(e.target.value)} /></label>
-          <label>Quantity (tonnes)<input name="qty" type="number" min="0" step="any" required /></label>
+          <label>Quantity<input name="qty" type="number" min="0" step="any" required /></label>
+          <label>Unit<select name="unit">{UNITS.filter((u) => u !== "pack").map((u) => <option key={u}>{u}</option>)}</select></label>
           <label>Destination<input name="dest" placeholder="Qingdao, China" required /></label>
           <label>Specifications<input name="specs" placeholder="Grade, moisture, packaging" /></label>
         </div>
@@ -181,11 +185,11 @@ function Buyer({ me, bump }: any) {
       {rfqs.length === 0 && <p className="muted">No requests yet.</p>}
       {rfqs.map((r) => (
         <div className="card" key={r.id}>
-          <h3>{r.commodity}, {Number(r.quantity_tons).toLocaleString()} tonnes to {r.destination} <span className="muted">({r.status})</span></h3>
+          <h3>{r.commodity}, {fmtQty(r.quantity_tons, r.unit)} to {r.destination} <span className="muted">({r.status})</span></h3>
           {(r.quotes || []).length === 0 && <p className="muted">Waiting for suppliers to quote.</p>}
           {(r.quotes || []).map((q: any) => (
             <p key={q.id}>
-              <strong>{q.profiles?.company}</strong>{q.profiles?.verified && <span className="v">Verified</span>}: USD {Number(q.price_usd_per_ton).toLocaleString()} per tonne, {q.lead_time_days} days. {q.note} <em className="muted">{q.status}</em>{" "}
+              <strong>{q.profiles?.company}</strong>{q.profiles?.verified && <span className="v">Verified</span>}: USD {Number(q.price_usd_per_ton).toLocaleString()} per {r.unit}, {q.lead_time_days} days. {q.note} <em className="muted">{q.status}</em>{" "}
               <Link href={`/messages?q=${q.id}`}>Message</Link>{" "}
               {r.status === "open" && <button className="btn alt" onClick={() => accept(q.id)}>Accept</button>}
             </p>
@@ -206,9 +210,9 @@ function Orders({ tick }: { tick: number }) {
       <h2>Orders</h2>
       {rows.length === 0 ? <p className="muted">No orders yet.</p> : (
         <div className="scroll"><table className="ledger">
-          <thead><tr><th>Product</th><th className="num">Tonnes</th><th className="num">USD per tonne</th><th className="num">Total USD</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Product</th><th className="num">Quantity</th><th className="num">USD per unit</th><th className="num">Total USD</th><th>Status</th><th></th></tr></thead>
           <tbody>{rows.map((o) => (
-            <tr key={o.id}><td>{o.commodity}</td><td className="num">{Number(o.quantity_tons).toLocaleString()}</td>
+            <tr key={o.id}><td>{o.commodity}</td><td className="num">{fmtQty(o.quantity_tons, o.unit)}</td>
               <td className="num">{Number(o.price_usd_per_ton).toLocaleString()}</td>
               <td className="num price">{(o.quantity_tons * o.price_usd_per_ton).toLocaleString()}</td><td>{o.status}</td><td><Link href={`/track?o=${o.id}`}>Track</Link>{" | "}<Link href={`/freight?o=${o.id}`}>Request freight</Link>{" | "}<Link href={`/docs?o=${o.id}`}>Documents</Link></td></tr>
           ))}</tbody>
