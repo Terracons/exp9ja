@@ -1,177 +1,464 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase, CATEGORIES, DEMO, fmtQty } from "@/lib/supabase";
+import {
+  supabase,
+  isConfigured,
+  CATEGORIES,
+  DEMO,
+  fmtQty,
+} from "@/lib/supabase";
+import { filterListings, type Listing, type Filters } from "@/lib/discovery";
 import Thumb from "@/components/Thumb";
 
-const DIASPORA = [
-  ["Garri", "White garri, yellow garri and Ijebu garri.", "garri"],
-  ["Egusi", "Whole melon seeds and ground egusi.", "egusi"],
-  ["Ogbono", "Whole ogbono seeds and ground ogbono.", "ogbono"],
-  ["Dried Catfish", "Smoked and dried catfish in different pack sizes.", "catfish"],
-  ["Dried Crayfish", "Whole dried crayfish and ground crayfish.", "crayfish"],
-  ["Red Palm Oil", "Locally sourced palm oil in bottles, gallons and larger containers.", "palm oil"],
-  ["Yam Flour", "Elubo and packaged yam flour.", "yam"],
-  ["Dried Vegetables", "Bitter leaf, ugu, oha, uziza and other traditional vegetables.", "vegetables"],
-  ["Stockfish", "Stockfish head, body, fins and cut portions.", "stockfish"],
-  ["Nigerian Snacks", "Chin chin, kuli-kuli, plantain chips and other locally made snacks.", "snacks"],
-];
-const BULK_STEPS = ["Search for the commodity you need.", "Send a request for quotation.", "Receive offers from interested suppliers.", "Compare prices, specifications, quantity and lead times.", "Confirm your order and arrange logistics."];
-const LOGISTICS = [
-  ["Freight Forwarders", "Arrange air and sea cargo transportation."],
-  ["Clearing and Customs Agents", "Support applicable export and destination customs clearance processes."],
-  ["Inspection Agents", "Arrange product inspections, quantity checks and quality verification."],
-  ["Warehousing and Consolidation", "Receive products from multiple suppliers and prepare consolidated shipments where feasible."],
-  ["Local Delivery Partners", "Arrange collection and transportation from suppliers to warehouses, ports and cargo terminals."],
-  ["Shipment Tracking", "Follow order preparation, collection, export processing, transit, customs clearance and final delivery as updates become available."],
-];
-const SELL = ["List retail products or bulk commodities.", "Set your pack sizes, minimum order quantities and prices.", "Receive retail orders and bulk quotation requests.", "Manage stock and communicate with buyers.", "Connect with logistics and inspection providers.", "Build a supplier profile and establish buyer trust."];
-const RETAIL_HOW = ["Find Nigerian products.", "Select your preferred pack size.", "Place your order.", "Follow preparation and shipping updates.", "Receive your products."];
-const BULK_HOW = ["Search for a Nigerian commodity.", "Submit an RFQ with your quantity and requirements.", "Compare supplier quotations.", "Agree on specifications and delivery arrangements.", "Track your shipment to its destination."];
-
-function Card({ r }: { r: any }) {
-  const retail = r.sale_type === "retail", unit = r.unit || "tonne";
-  return (
-    <article className="prod">
-      <Thumb url={r.image_url} commodity={r.commodity} />
-      <div className="info">
-        <h3>{r.title}</h3>
-        {r.price_usd_per_ton != null
-          ? <p className="price">US ${Number(r.price_usd_per_ton).toLocaleString()} <small>/ {unit}</small></p>
-          : <p className="muted">Price set by supplier</p>}
-        {r.pack_sizes && <p className="muted">{r.pack_sizes}</p>}
-        {r.moq_tons != null && <p className="muted">Min. order {fmtQty(r.moq_tons, unit)}</p>}
-        {r.origin_state && <p className="muted">{r.origin_state}, Nigeria</p>}
-        <p className="sup">{r.profiles?.company}{r.profiles?.verified && <span className="v">Verified</span>}{r.demo && <span className="tag">Sample</span>}</p>
-        {!r.demo && <Link className="btn" href={`/dashboard?c=${encodeURIComponent(r.commodity)}`}>{retail ? "Request to buy" : "Request quote"}</Link>}
-      </div>
-    </article>
-  );
-}
-
+const initial: Filters = {
+  query: "",
+  category: "",
+  sale: "",
+  origin: "",
+  verified: false,
+  savedOnly: false,
+  sort: "newest",
+};
 export default function Home() {
-  const [rows, setRows] = useState<any[] | null>(null);
-  const [err, setErr] = useState("");
-  const [q, setQ] = useState("");
-  const [cat, setCat] = useState("");
-
+  const [rows, setRows] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(isConfigured);
+  const [failed, setFailed] = useState(false);
+  const [filters, setFilters] = useState(initial);
+  const [saved, setSaved] = useState<string[]>([]);
+  const [storageReady, setStorageReady] = useState(false);
+  const [notice, setNotice] = useState("");
   useEffect(() => {
-    supabase.from("listings").select("*, profiles(company,country,verified)").order("created_at", { ascending: false })
-      .then(({ data, error }) => { if (error) setErr(error.message); setRows(data || []); });
+    try {
+      const value = JSON.parse(localStorage.getItem("1960-saved") || "[]");
+      if (Array.isArray(value))
+        setSaved(value.filter((id) => typeof id === "string"));
+    } catch {
+      /* Browsing remains available without storage. */
+    }
+    setStorageReady(true);
+    if (!isConfigured) return;
+    let active = true;
+    supabase
+      .from("listings")
+      .select("*, profiles(company,country,verified)")
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (active) {
+          setRows(data || []);
+          setFailed(!!error);
+          setLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, []);
-
-  const real = !!(rows && rows.length);
-  const shown = (real ? rows! : DEMO).filter((r) =>
-    (!cat || r.category === cat) &&
-    `${r.title} ${r.commodity} ${r.category ?? ""} ${r.origin_state ?? ""} ${r.profiles?.company ?? ""}`.toLowerCase().includes(q.toLowerCase()));
-  const bulk = shown.filter((r) => r.sale_type !== "retail");
-  const retail = shown.filter((r) => r.sale_type === "retail");
-  const go = (cat_: string, q_: string) => { setCat(cat_); setQ(q_); document.getElementById("listings")?.scrollIntoView({ behavior: "smooth" }); };
-
+  useEffect(() => {
+    if (storageReady) {
+      try {
+        localStorage.setItem("1960-saved", JSON.stringify(saved));
+      } catch {
+        setNotice(
+          "Saved for this visit. Your browser could not store this list.",
+        );
+      }
+    }
+  }, [saved, storageReady]);
+  const demo = !rows.length;
+  const source = demo ? DEMO : rows;
+  const shown = filterListings(source, filters, saved);
+  const origins = [
+    ...new Set(source.map((r) => r.origin_state).filter(Boolean)),
+  ].sort();
+  const update = (patch: Partial<Filters>) =>
+    setFilters((current) => ({ ...current, ...patch }));
+  function explore(category = "") {
+    update({ category, query: "", savedOnly: false });
+    document.getElementById("shop")?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+  }
+  function toggleSaved(id: string) {
+    setSaved((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  }
   return (
     <>
-      <section className="banner">
-        <h1>Everything Nigerian. Delivered Worldwide.</h1>
-        <p>Discover authentic Nigerian food, agricultural commodities, natural products, fashion and more. Buy directly from Nigerian farmers, producers, independent sellers and businesses, whether you need one pack or an entire container.</p>
-        <div className="search">
-          <input aria-label="Search" placeholder="Search products, categories or suppliers" value={q} onChange={(e) => setQ(e.target.value)} />
-          <button className="btn" onClick={() => go(cat, q)}>Search</button>
+      <section className="independence-hero" aria-labelledby="hero-title">
+        <div className="hero-copy">
+          <p className="eyebrow">
+            <span className="flag" aria-label="Nigerian flag" /> ROOTED IN
+            NIGERIA. OPEN TO THE WORLD.
+          </p>
+          <h1 id="hero-title">
+            Made here.
+            <br />
+            Loved <em>everywhere.</em>
+          </h1>
+          <p className="hero-description">
+            From the food you miss to the products your business needs. Discover
+            Nigerian producers, source with confidence, and bring a piece of
+            home to the world.
+          </p>
+          <div className="actions">
+            <a className="btn" href="#shop">
+              Explore Nigerian products ↗
+            </a>
+            <Link className="text-link" href="/dashboard">
+              Source in bulk ↗
+            </Link>
+          </div>
+          <div className="hero-footnote">
+            <span className="tiny-star" aria-hidden="true">
+              ✳
+            </span>{" "}
+            Our independence. Our enterprise. Our next chapter.
+          </div>
         </div>
-        <p style={{ marginTop: "1rem" }}>
-          <a className="btn alt light" href="#shop">Shop Nigerian Products</a>{" "}
-          <a className="btn alt light" href="#bulk">Source in Bulk</a>
-        </p>
-        <ul className="trust">
-          <li>Shop retail packs or order in bulk</li><li>Verified Nigerian suppliers</li><li>Request quotations and compare offers</li>
-          <li>Freight, inspection and clearing services</li><li>Track orders and shipments</li>
-        </ul>
+        <div
+          className="heritage-art"
+          role="img"
+          aria-label="Green and ivory artwork celebrating Nigeria's independence on 1 October 1960"
+        >
+          <div className="art-top">
+            <span>NIGERIA / EST. 1960</span>
+            <span>01 OCT</span>
+          </div>
+          <div className="sunburst" aria-hidden="true">
+            ✳
+          </div>
+          <div className="art-number">
+            19
+            <br />
+            <span>60</span>
+            <i>
+              Since independence.
+              <br />
+              Towards possibility.
+            </i>
+          </div>
+          <div className="art-bottom">
+            <span>THE SPIRIT OF A NATION</span>
+            <span>↗</span>
+          </div>
+        </div>
       </section>
-
-      <section id="categories" className="block">
-        <h2 className="sec">Explore Categories</h2>
-        <div className="tiles">
-          {CATEGORIES.map((c) => (
-            <button key={c.name} className={`tile ${cat === c.name ? "on" : ""}`} onClick={() => go(cat === c.name ? "" : c.name, "")}>
-              <span className="em" style={{ background: c.color }}>{c.emoji}</span>
-              <strong>{c.name}</strong><span className="muted">{c.blurb}</span>
+      <div className="manifesto-strip">
+        <span>GROWN WITH CARE</span>
+        <span aria-hidden="true">✳</span>
+        <span>CRAFTED WITH PRIDE</span>
+        <span aria-hidden="true">✳</span>
+        <span>SHARED WITH THE WORLD</span>
+      </div>
+      <section className="discovery-section" id="categories">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">A LITTLE CLOSER TO HOME</p>
+            <h2>So much to discover.</h2>
+          </div>
+          <a href="#shop" className="text-link">
+            Browse all products ↗
+          </a>
+        </div>
+        <div className="category-ribbon">
+          {CATEGORIES.map((c, i) => (
+            <button
+              key={c.name}
+              className={`category-item ${filters.category === c.name ? "selected" : ""}`}
+              onClick={() => explore(c.name)}
+            >
+              <span
+                className={`category-symbol symbol-${i % 4}`}
+                aria-hidden="true"
+              >
+                {c.emoji}
+              </span>
+              <span>{c.name}</span>
+              <span className="category-arrow" aria-hidden="true">
+                ↗
+              </span>
             </button>
           ))}
         </div>
       </section>
-
-      <section id="shop" className="block">
-        <h2 className="sec">Shop Nigerian Products</h2>
-        <p className="muted">Find the food, ingredients and everyday products you grew up with, alongside new products made in Nigeria.</p>
-        <h3>Popular with the Nigerian diaspora</h3>
-        <div className="tiles small">
-          {DIASPORA.map(([name, text, key]) => (
-            <button key={name} className="tile" onClick={() => go("", key)}><strong>{name}</strong><span className="muted">{text}</span></button>
+      <section className="discovery-section" id="shop">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">FROM OUR SOIL, OUR HANDS, OUR HOMES</p>
+            <h2>Find your piece of Nigeria.</h2>
+          </div>
+          <button
+            className={`saved-toggle ${filters.savedOnly ? "selected" : ""}`}
+            aria-pressed={filters.savedOnly}
+            onClick={() => update({ savedOnly: !filters.savedOnly })}
+          >
+            ♡ Saved ({saved.length})
+          </button>
+        </div>
+        <div className="discovery-toolbar">
+          <label className="search-field">
+            <span aria-hidden="true">⌕</span>
+            <input
+              aria-label="Search products, suppliers or states"
+              placeholder="Try cocoa, garri, or a supplier..."
+              value={filters.query}
+              onChange={(e) => update({ query: e.target.value })}
+            />
+          </label>
+          <label>
+            <span className="sr-only">Category</span>
+            <select
+              value={filters.category}
+              onChange={(e) => update({ category: e.target.value })}
+            >
+              <option value="">All categories</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.name}>{c.name}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="sr-only">Order type</span>
+            <select
+              value={filters.sale}
+              onChange={(e) => update({ sale: e.target.value })}
+            >
+              <option value="">Retail & bulk</option>
+              <option value="retail">Retail packs</option>
+              <option value="bulk">Bulk sourcing</option>
+            </select>
+          </label>
+          <label>
+            <span className="sr-only">Sort products</span>
+            <select
+              value={filters.sort}
+              onChange={(e) => update({ sort: e.target.value })}
+            >
+              <option value="newest">Latest arrivals</option>
+              <option value="price-low">Price: low to high</option>
+              <option value="price-high">Price: high to low</option>
+              <option value="name">Name: A to Z</option>
+            </select>
+          </label>
+        </div>
+        <div className="filter-details">
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={filters.verified}
+              onChange={(e) => update({ verified: e.target.checked })}
+            />{" "}
+            Verified suppliers only
+          </label>
+          <label className="origin-filter">
+            Origin{" "}
+            <select
+              value={filters.origin}
+              onChange={(e) => update({ origin: e.target.value })}
+            >
+              <option value="">All states</option>
+              {origins.map((state) => (
+                <option key={state!}>{state}</option>
+              ))}
+            </select>
+          </label>
+          <button className="link" onClick={() => setFilters(initial)}>
+            Reset filters
+          </button>
+        </div>
+        {demo && (
+          <p className="sample-notice" role="status">
+            {failed ? "Live listings are temporarily unavailable. " : ""}Explore
+            sample listings.{" "}
+            {isConfigured
+              ? "Published products appear here when available."
+              : "Live buying and accounts require marketplace setup."}{" "}
+            Sample prices are illustrative.
+          </p>
+        )}
+        <div className="result-summary" aria-live="polite">
+          {loading
+            ? "Loading latest products..."
+            : `${shown.length} ${shown.length === 1 ? "discovery" : "discoveries"}${filters.savedOnly ? " in your collection" : " from Nigeria"}`}
+          <span>Retail packs to container loads</span>
+        </div>
+        {notice && <p role="status">{notice}</p>}
+        <div className="products discovery-products">
+          {shown.map((r) => (
+            <article className="prod" key={r.id}>
+              <div className="product-visual">
+                <Thumb url={r.image_url} commodity={r.commodity} />
+                <span className="product-type">
+                  {r.demo
+                    ? "SAMPLE"
+                    : r.sale_type === "retail"
+                      ? "RETAIL"
+                      : "BULK"}
+                </span>
+                <button
+                  className={`save-product ${saved.includes(r.id) ? "is-saved" : ""}`}
+                  aria-label={`${saved.includes(r.id) ? "Unsave" : "Save"} ${r.title}`}
+                  aria-pressed={saved.includes(r.id)}
+                  onClick={() => toggleSaved(r.id)}
+                >
+                  {saved.includes(r.id) ? "♥" : "♡"}
+                </button>
+              </div>
+              <div className="info">
+                <p className="product-origin">
+                  {r.origin_state
+                    ? `${r.origin_state}, Nigeria`
+                    : "Nigerian food collection"}
+                </p>
+                <h3>{r.title}</h3>
+                <p className="supplier-name">
+                  {r.profiles?.company || "Independent supplier"}{" "}
+                  {r.profiles?.verified && <span className="v">Verified</span>}
+                </p>
+                <p className="price">
+                  {r.price_usd_per_ton != null ? (
+                    <>
+                      ${Number(r.price_usd_per_ton).toLocaleString()}{" "}
+                      <small>USD / {r.unit || "tonne"}</small>
+                    </>
+                  ) : (
+                    "Ask for pricing"
+                  )}
+                </p>
+                {r.moq_tons != null && (
+                  <p className="muted">
+                    Min. order {fmtQty(r.moq_tons, r.unit)}
+                  </p>
+                )}
+                {r.pack_sizes && (
+                  <p className="muted pack-description">{r.pack_sizes}</p>
+                )}
+                {r.demo ? (
+                  <span className="sample-caption">
+                    Preview product • Not available to order
+                  </span>
+                ) : (
+                  <Link
+                    className="product-request"
+                    href={`/dashboard?c=${encodeURIComponent(r.commodity)}&unit=${encodeURIComponent(r.unit || "tonne")}`}
+                  >
+                    Request {r.sale_type === "retail" ? "to buy" : "a quote"} ↗
+                  </Link>
+                )}
+              </div>
+            </article>
           ))}
         </div>
-        <p className="muted">Browse products by pack size, price, supplier location and delivery destination.</p>
-        <button className="btn" onClick={() => go("Nigerian Foodstuff", "")}>Explore Nigerian Food Products</button>
+        {!shown.length && (
+          <div className="empty-state">
+            <span aria-hidden="true">⌕</span>
+            <h3>
+              {filters.savedOnly
+                ? "Your collection starts here."
+                : "A different discovery awaits."}
+            </h3>
+            <p>
+              {filters.savedOnly
+                ? "Save products with the heart button, or adjust your filters."
+                : "Try a broader search or another category."}
+            </p>
+            <button className="btn" onClick={() => setFilters(initial)}>
+              Explore all products
+            </button>
+          </div>
+        )}
       </section>
-
-      <div id="listings" />
-      {err && <p className="card">Could not load listings: {err}. Check your Supabase environment variables and that the database SQL has been run.</p>}
-      {(cat || q) && <p className="muted">Showing {cat || "all categories"}{q ? ` matching "${q}"` : ""}. <button className="link" onClick={() => { setCat(""); setQ(""); }}>Clear filters</button></p>}
-      {rows === null && <p className="muted">Loading listings</p>}
-      {rows !== null && shown.length === 0 && <p className="muted">No matching listings yet.</p>}
-      {bulk.length > 0 && (
-        <section className="block">
-          <h2 className="sec">Featured Agricultural Commodities {!real && <small>Sample listings shown until suppliers publish their own products and prices.</small>}</h2>
-          <p className="muted">Source Nigerian agricultural products directly from farmers, processors, aggregators and export suppliers.</p>
-          <div className="products">{bulk.map((r) => <Card key={r.id} r={r} />)}</div>
-        </section>
-      )}
-      {retail.length > 0 && (
-        <section className="block">
-          <h2 className="sec">Popular Nigerian Food Products {!real && <small>Sample product names. Prices and pack sizes are provided by suppliers.</small>}</h2>
-          <p className="muted">Explore smaller retail packs and wholesale quantities from Nigerian food suppliers.</p>
-          <div className="products">{retail.map((r) => <Card key={r.id} r={r} />)}</div>
-        </section>
-      )}
-
-      <section id="bulk" className="block panel">
-        <h2 className="sec">Source in Bulk</h2>
-        <p>Are you an importer, wholesaler, manufacturer or distributor? NaijaBulk helps you connect with Nigerian suppliers and compare offers without contacting every supplier individually.</p>
-        <ol className="steps">{BULK_STEPS.map((s) => <li key={s}>{s}</li>)}</ol>
-        <p className="muted">Bulk order units include kilograms, bags, cartons, pallets, tonnes and containers.</p>
-        <Link className="btn" href="/dashboard">Start a Bulk Sourcing Request</Link>
-      </section>
-
-      <section id="logistics" className="block">
-        <h2 className="sec">More Than a Marketplace: Logistics and Trade Support</h2>
-        <p className="muted">Finding a supplier is only one part of international trade. NaijaBulk also connects buyers with service providers who can help move products from suppliers in Nigeria to their final destinations.</p>
-        <div className="tiles small">{LOGISTICS.map(([n, t]) => <div className="tile" key={n}><strong>{n}</strong><span className="muted">{t}</span></div>)}</div>
-        <Link className="btn" href="/providers">Explore Logistics Providers</Link>
-      </section>
-
-      <section id="sell" className="block panel">
-        <h2 className="sec">Sell on NaijaBulk</h2>
-        <p>Are you a farmer, food producer, processor, trader, cooperative, artisan or registered business? You can list products and reach customers outside your immediate market.</p>
-        <ul className="steps">{SELL.map((s) => <li key={s}>{s}</li>)}</ul>
-        <Link className="btn" href="/login">Become a Supplier</Link>
-      </section>
-
-      <section className="block">
-        <h2 className="sec">How NaijaBulk Works</h2>
-        <div className="two">
-          <div className="card"><h3>For individual and diaspora buyers</h3><ol className="steps">{RETAIL_HOW.map((s) => <li key={s}>{s}</li>)}</ol></div>
-          <div className="card"><h3>For commercial buyers</h3><ol className="steps">{BULK_HOW.map((s) => <li key={s}>{s}</li>)}</ol></div>
+      <section className="heritage-section" id="heritage">
+        <div>
+          <p className="eyebrow">MORE THAN A NAME. A BEGINNING.</p>
+          <h2>
+            October first.
+            <br />
+            <em>Forever forward.</em>
+          </h2>
+          <p>
+            On 1 October 1960, Nigeria became independent. Our name honours that
+            beginning. Our marketplace champions what comes next.
+          </p>
+          <p className="heritage-date">01 / 10 / 1960</p>
+        </div>
+        <div className="heritage-statement">
+          <span aria-hidden="true">✳</span>
+          <h3>
+            A world of potential.
+            <br />A place to call home.
+          </h3>
+          <p>
+            We connect Nigerian farmers, food producers, artisans and businesses
+            with international buyers and the diaspora. One product. One
+            relationship. One possibility at a time.
+          </p>
+          <Link href="/guide">Your guide to buying internationally ↗</Link>
         </div>
       </section>
-
-      <section className="block">
-        <h2 className="sec">Supplier Verification</h2>
-        <p>NaijaBulk reviews supplier information and supporting documents as part of its marketplace verification process.</p>
-        <p className="muted">Verification is intended to help buyers assess supplier credibility. It does not replace official export approvals, product certifications, food safety approvals or destination-country import requirements. Product and destination eligibility may vary.</p>
+      <section id="bulk" className="trade-section">
+        <div>
+          <p className="eyebrow">LOCAL ROOTS. GLOBAL AMBITION.</p>
+          <h2>
+            Good things grow
+            <br />
+            when we connect.
+          </h2>
+          <p>
+            Find your supplier, agree your specifications, and coordinate the
+            journey. Build your next trade connection in Nigeria.
+          </p>
+          <Link className="btn" href="/dashboard">
+            Start a sourcing request ↗
+          </Link>
+        </div>
+        <ol className="trade-steps">
+          <li>
+            <span>01</span>
+            <div>
+              <h3>Discover & shortlist</h3>
+              <p>Explore products and save the ones that fit your needs.</p>
+            </div>
+          </li>
+          <li>
+            <span>02</span>
+            <div>
+              <h3>Request & compare</h3>
+              <p>Send your requirements and compare supplier quotations.</p>
+            </div>
+          </li>
+          <li>
+            <span>03</span>
+            <div>
+              <h3>Pay, coordinate & track</h3>
+              <p>
+                Review your order, request logistics quotes, and follow shipment
+                updates.
+              </p>
+              <Link href="/providers">Explore logistics partners ↗</Link>
+            </div>
+          </li>
+        </ol>
       </section>
-
-      <section className="banner end">
-        <h2 style={{ border: 0, margin: 0 }}>Start Exploring Nigerian Products</h2>
-        <p>Whether you are buying Nigerian foodstuff for your home, sourcing products for your grocery store, or importing agricultural commodities for your business, NaijaBulk helps you discover Nigerian suppliers and coordinate the buying process.</p>
-        <p><a className="btn alt light" href="#shop">Shop Nigerian Products</a> <a className="btn alt light" href="#bulk">Source in Bulk</a> <Link className="btn alt light" href="/login">Become a Supplier</Link></p>
+      <section className="seller-callout">
+        <span aria-hidden="true">✳</span>
+        <div>
+          <p className="eyebrow">MADE IN NIGERIA. READY FOR THE WORLD.</p>
+          <h2>Your craft deserves a bigger stage.</h2>
+          <p>
+            Farmers, makers, producers and independent businesses. There is a
+            place for you here.
+          </p>
+        </div>
+        <Link href="/login?mode=signup&role=supplier" className="btn">
+          Become a supplier ↗
+        </Link>
       </section>
     </>
   );
