@@ -9,7 +9,7 @@ test("database migration, roles, quotations, logistics, private documents and id
     await db.exec(`
       create role anon; create role authenticated; create role service_role bypassrls;
       create schema auth; create schema storage;
-      create table auth.users(id uuid primary key,raw_user_meta_data jsonb default '{}'::jsonb);
+      create table auth.users(id uuid primary key,raw_user_meta_data jsonb default '{}'::jsonb,raw_app_meta_data jsonb default '{"provider":"email"}'::jsonb);
       create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
       create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
       create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text);
@@ -31,6 +31,12 @@ test("database migration, roles, quotations, logistics, private documents and id
     );
     await db.exec(
       "grant select,insert,update,delete on all tables in schema public to anon,authenticated,service_role;",
+    );
+    await db.exec(
+      await readFile(
+        new URL("../supabase/1960_google_auth.sql", import.meta.url),
+        "utf8",
+      ),
     );
     const buyer = "10000000-0000-0000-0000-000000000001",
       supplier = "20000000-0000-0000-0000-000000000002",
@@ -187,6 +193,58 @@ test("database migration, roles, quotations, logistics, private documents and id
       (await db.query("select company from profiles where id=$1", [buyer]))
         .rows[0].company,
       "Updated buyer",
+    );
+    await db.exec("reset role");
+    const googleUser = "50000000-0000-0000-0000-000000000005";
+    await db.query(
+      "insert into auth.users(id,raw_user_meta_data,raw_app_meta_data) values($1,$2,$3)",
+      [
+        googleUser,
+        JSON.stringify({
+          full_name: "Google Member",
+          role: "supplier",
+          is_admin: true,
+        }),
+        JSON.stringify({ provider: "google" }),
+      ],
+    );
+    const pending = (
+      await db.query("select * from profiles where id=$1", [googleUser])
+    ).rows[0];
+    assert.equal(pending.company, "Google Member");
+    assert.equal(pending.role, "buyer");
+    assert.equal(pending.is_admin, false);
+    assert.equal(pending.onboarding_complete, false);
+    await act(buyer);
+    await assert.rejects(
+      db.query(
+        "select complete_my_onboarding('supplier','Changed role','Nigeria','',null)",
+      ),
+    );
+    await act(googleUser);
+    await assert.rejects(
+      db.query(
+        "select complete_my_onboarding('admin','Bad role','Nigeria','',null)",
+      ),
+    );
+    await assert.rejects(
+      db.query(
+        "select complete_my_onboarding('provider','Carrier','Nigeria','',null)",
+      ),
+    );
+    await db.query(
+      "select complete_my_onboarding('supplier','Nigerian producer','Nigeria','Food producer',null)",
+    );
+    const complete = (
+      await db.query("select * from profiles where id=$1", [googleUser])
+    ).rows[0];
+    assert.equal(complete.role, "supplier");
+    assert.equal(complete.onboarding_complete, true);
+    assert.equal(complete.verified, false);
+    await assert.rejects(
+      db.query(
+        "select complete_my_onboarding('buyer','Change again','Nigeria','',null)",
+      ),
     );
   } finally {
     await db.close();

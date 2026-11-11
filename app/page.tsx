@@ -90,361 +90,351 @@ export default function Home() {
   }
   return (
     <>
-      <section className="independence-hero" aria-labelledby="hero-title">
-        <div className="hero-copy">
-          <p className="eyebrow">
-            <span className="flag" aria-label="Nigerian flag" /> ROOTED IN
-            NIGERIA. OPEN TO THE WORLD.
-          </p>
-          <h1 id="hero-title">
-            Made here.
-            <br />
-            Loved <em>everywhere.</em>
-          </h1>
-          <p className="hero-description">
-            From the food you miss to the products your business needs. Discover
-            Nigerian producers, source with confidence, and bring a piece of
-            home to the world.
-          </p>
-          <div className="actions">
-            <a className="btn" href="#shop">
-              Explore Nigerian products ↗
-            </a>
-            <Link className="text-link" href="/dashboard">
-              Source in bulk ↗
-            </Link>
-          </div>
-          <div className="hero-footnote">
-            <span className="tiny-star" aria-hidden="true">
-              ✳
-            </span>{" "}
-            Our independence. Our enterprise. Our next chapter.
-          </div>
-        </div>
-        <div
-          className="heritage-art"
-          role="img"
-          aria-label="Green and ivory artwork celebrating Nigeria's independence on 1 October 1960"
-        >
-          <div className="art-top">
-            <span>NIGERIA / EST. 1960</span>
-            <span>01 OCT</span>
-          </div>
-          <div className="sunburst" aria-hidden="true">
-            ✳
-          </div>
-          <div className="art-number">
-            19
-            <br />
-            <span>60</span>
-            <i>
-              Since independence.
-              <br />
-              Towards possibility.
-            </i>
-          </div>
-          <div className="art-bottom">
-            <span>THE SPIRIT OF A NATION</span>
-            <span>↗</span>
-          </div>
-        </div>
-      </section>
-      <div className="manifesto-strip">
-        <span>GROWN WITH CARE</span>
-        <span aria-hidden="true">✳</span>
-        <span>CRAFTED WITH PRIDE</span>
-        <span aria-hidden="true">✳</span>
-        <span>SHARED WITH THE WORLD</span>
-      </div>
-      <section className="discovery-section" id="categories">
-        <div className="section-heading">
+      <section className="market-search" aria-labelledby="hero-title">
+        <div className="market-search-heading">
           <div>
-            <p className="eyebrow">A LITTLE CLOSER TO HOME</p>
-            <h2>So much to discover.</h2>
+            <h1 id="hero-title">What are you looking for?</h1>
           </div>
-          <a href="#shop" className="text-link">
-            Browse all products ↗
-          </a>
+          <span className="market-origin">
+            <span className="flag" aria-hidden="true" /> Nigerian products.
+            Global connections.
+          </span>
         </div>
-        <div className="category-ribbon">
-          {CATEGORIES.map((c, i) => (
+        <form
+          className="market-search-form"
+          role="search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            document.getElementById("shop")?.scrollIntoView({
+              behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+                .matches
+                ? "auto"
+                : "smooth",
+            });
+          }}
+        >
+          <span aria-hidden="true">⌕</span>
+          <input
+            aria-label="Search products, suppliers or states"
+            placeholder="Search Nigerian products, suppliers or states"
+            value={filters.query}
+            onChange={(e) => update({ query: e.target.value })}
+          />
+          <button className="btn" type="submit">
+            Search
+          </button>
+        </form>
+        <div className="search-suggestions">
+          <span>Explore:</span>
+          {["Garri", "Cocoa", "Ginger", "Adire", "Shea"].map((term) => (
             <button
-              key={c.name}
-              className={`category-item ${filters.category === c.name ? "selected" : ""}`}
-              onClick={() => explore(c.name)}
+              key={term}
+              onClick={() => {
+                setFilters({ ...initial, query: term });
+                document.getElementById("shop")?.scrollIntoView();
+              }}
             >
-              <span
-                className={`category-symbol symbol-${i % 4}`}
-                aria-hidden="true"
-              >
-                {c.emoji}
-              </span>
-              <span>{c.name}</span>
-              <span className="category-arrow" aria-hidden="true">
-                ↗
-              </span>
+              {term}
             </button>
           ))}
         </div>
       </section>
-      <section className="discovery-section" id="shop">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">FROM OUR SOIL, OUR HANDS, OUR HOMES</p>
-            <h2>Find your piece of Nigeria.</h2>
+      <div className="market-layout">
+        <aside
+          className="market-categories"
+          id="categories"
+          aria-label="Product categories"
+        >
+          <h2>
+            <span aria-hidden="true">☰</span> All categories
+          </h2>
+          <div className="market-category-list">
+            <button
+              className={!filters.category ? "active" : ""}
+              aria-pressed={!filters.category}
+              onClick={() => explore("")}
+            >
+              <span aria-hidden="true">◈</span>
+              <span>All Nigerian products</span>
+              <span aria-hidden="true">›</span>
+            </button>
+            {CATEGORIES.map((c) => (
+              <button
+                key={c.name}
+                className={filters.category === c.name ? "active" : ""}
+                aria-pressed={filters.category === c.name}
+                onClick={() => explore(c.name)}
+              >
+                <span aria-hidden="true">{c.emoji}</span>
+                <span>{c.name}</span>
+                <span aria-hidden="true">›</span>
+              </button>
+            ))}
           </div>
-          <button
-            className={`saved-toggle ${filters.savedOnly ? "selected" : ""}`}
-            aria-pressed={filters.savedOnly}
-            onClick={() => update({ savedOnly: !filters.savedOnly })}
+          <div className="sidebar-sourcing">
+            <strong>Buying for your business?</strong>
+            <p>Tell suppliers what you need. Compare their quotations.</p>
+            <Link href="/dashboard">Post a sourcing request ↗</Link>
+          </div>
+        </aside>
+        <div className="market-main">
+          <section
+            className="market-collections"
+            aria-labelledby="collections-title"
           >
-            ♡ Saved ({saved.length})
-          </button>
-        </div>
-        <div className="discovery-toolbar">
-          <label className="search-field">
-            <span aria-hidden="true">⌕</span>
-            <input
-              aria-label="Search products, suppliers or states"
-              placeholder="Try cocoa, garri, or a supplier..."
-              value={filters.query}
-              onChange={(e) => update({ query: e.target.value })}
-            />
-          </label>
-          <label>
-            <span className="sr-only">Category</span>
-            <select
-              value={filters.category}
-              onChange={(e) => update({ category: e.target.value })}
-            >
-              <option value="">All categories</option>
-              {CATEGORIES.map((c) => (
-                <option key={c.name}>{c.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span className="sr-only">Order type</span>
-            <select
-              value={filters.sale}
-              onChange={(e) => update({ sale: e.target.value })}
-            >
-              <option value="">Retail & bulk</option>
-              <option value="retail">Retail packs</option>
-              <option value="bulk">Bulk sourcing</option>
-            </select>
-          </label>
-          <label>
-            <span className="sr-only">Sort products</span>
-            <select
-              value={filters.sort}
-              onChange={(e) => update({ sort: e.target.value })}
-            >
-              <option value="newest">Latest arrivals</option>
-              <option value="price-low">Price: low to high</option>
-              <option value="price-high">Price: high to low</option>
-              <option value="name">Name: A to Z</option>
-            </select>
-          </label>
-        </div>
-        <div className="filter-details">
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={filters.verified}
-              onChange={(e) => update({ verified: e.target.checked })}
-            />{" "}
-            Verified suppliers only
-          </label>
-          <label className="origin-filter">
-            Origin{" "}
-            <select
-              value={filters.origin}
-              onChange={(e) => update({ origin: e.target.value })}
-            >
-              <option value="">All states</option>
-              {origins.map((state) => (
-                <option key={state!}>{state}</option>
-              ))}
-            </select>
-          </label>
-          <button className="link" onClick={() => setFilters(initial)}>
-            Reset filters
-          </button>
-        </div>
-        {demo && (
-          <p className="sample-notice" role="status">
-            {failed ? "Live listings are temporarily unavailable. " : ""}Explore
-            sample listings.{" "}
-            {isConfigured
-              ? "Published products appear here when available."
-              : "Live buying and accounts require marketplace setup."}{" "}
-            Sample prices are illustrative.
-          </p>
-        )}
-        <div className="result-summary" aria-live="polite">
-          {loading
-            ? "Loading latest products..."
-            : `${shown.length} ${shown.length === 1 ? "discovery" : "discoveries"}${filters.savedOnly ? " in your collection" : " from Nigeria"}`}
-          <span>Retail packs to container loads</span>
-        </div>
-        {notice && <p role="status">{notice}</p>}
-        <div className="products discovery-products">
-          {shown.map((r) => (
-            <article className="prod" key={r.id}>
-              <div className="product-visual">
-                <Thumb url={r.image_url} commodity={r.commodity} />
-                <span className="product-type">
-                  {r.demo
-                    ? "SAMPLE"
-                    : r.sale_type === "retail"
-                      ? "RETAIL"
-                      : "BULK"}
-                </span>
+            <h2 id="collections-title">Featured collections</h2>
+            <div className="collection-grid">
+              {[
+                {
+                  title: "A taste of home",
+                  detail: "Foodstuff & retail packs",
+                  sale: "retail",
+                },
+                {
+                  title: "Source in bulk",
+                  detail: "Agricultural commodities",
+                  sale: "bulk",
+                },
+                {
+                  title: "Latest arrivals",
+                  detail: "Explore the full marketplace",
+                  sale: "",
+                },
+              ].map((collection) => (
                 <button
-                  className={`save-product ${saved.includes(r.id) ? "is-saved" : ""}`}
-                  aria-label={`${saved.includes(r.id) ? "Unsave" : "Save"} ${r.title}`}
-                  aria-pressed={saved.includes(r.id)}
-                  onClick={() => toggleSaved(r.id)}
+                  key={collection.title}
+                  className="collection-card"
+                  onClick={() => {
+                    setFilters({ ...initial, sale: collection.sale });
+                    document.getElementById("shop")?.scrollIntoView();
+                  }}
                 >
-                  {saved.includes(r.id) ? "♥" : "♡"}
+                  <span className="collection-title">
+                    {collection.title} <span aria-hidden="true">↗</span>
+                  </span>
+                  <span className="collection-detail">{collection.detail}</span>
+                  <span className="collection-thumbs">
+                    {source
+                      .filter(
+                        (r) =>
+                          !collection.sale ||
+                          (r.sale_type || "bulk") === collection.sale,
+                      )
+                      .slice(0, 2)
+                      .map((r) => (
+                        <Thumb
+                          key={r.id}
+                          url={r.image_url}
+                          commodity={r.commodity}
+                        />
+                      ))}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+          <section className="discovery-section market-products" id="shop">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">RETAIL & BULK • SOURCED IN NIGERIA</p>
+                <h2>Explore products</h2>
+              </div>
+              <button
+                className={`saved-toggle ${filters.savedOnly ? "selected" : ""}`}
+                aria-pressed={filters.savedOnly}
+                onClick={() => update({ savedOnly: !filters.savedOnly })}
+              >
+                ♡ Saved ({saved.length})
+              </button>
+            </div>
+            <div className="discovery-toolbar">
+              <label>
+                <span className="sr-only">Category</span>
+                <select
+                  value={filters.category}
+                  onChange={(e) => update({ category: e.target.value })}
+                >
+                  <option value="">All categories</option>
+                  {CATEGORIES.map((c) => (
+                    <option key={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span className="sr-only">Order type</span>
+                <select
+                  value={filters.sale}
+                  onChange={(e) => update({ sale: e.target.value })}
+                >
+                  <option value="">Retail & bulk</option>
+                  <option value="retail">Retail packs</option>
+                  <option value="bulk">Bulk sourcing</option>
+                </select>
+              </label>
+              <label>
+                <span className="sr-only">Sort products</span>
+                <select
+                  value={filters.sort}
+                  onChange={(e) => update({ sort: e.target.value })}
+                >
+                  <option value="newest">Latest arrivals</option>
+                  <option value="price-low">Price: low to high</option>
+                  <option value="price-high">Price: high to low</option>
+                  <option value="name">Name: A to Z</option>
+                </select>
+              </label>
+            </div>
+            <details className="market-advanced">
+              <summary>More filters: origin & verified suppliers</summary>
+              <div className="filter-details">
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={filters.verified}
+                    onChange={(e) => update({ verified: e.target.checked })}
+                  />{" "}
+                  Verified suppliers only
+                </label>
+                <label className="origin-filter">
+                  Origin{" "}
+                  <select
+                    value={filters.origin}
+                    onChange={(e) => update({ origin: e.target.value })}
+                  >
+                    <option value="">All states</option>
+                    {origins.map((state) => (
+                      <option key={state!}>{state}</option>
+                    ))}
+                  </select>
+                </label>
+                <button className="link" onClick={() => setFilters(initial)}>
+                  Reset filters
                 </button>
               </div>
-              <div className="info">
-                <p className="product-origin">
-                  {r.origin_state
-                    ? `${r.origin_state}, Nigeria`
-                    : "Nigerian food collection"}
-                </p>
-                <h3>{r.title}</h3>
-                <p className="supplier-name">
-                  {r.profiles?.company || "Independent supplier"}{" "}
-                  {r.profiles?.verified && <span className="v">Verified</span>}
-                </p>
-                <p className="price">
-                  {r.price_usd_per_ton != null ? (
-                    <>
-                      ${Number(r.price_usd_per_ton).toLocaleString()}{" "}
-                      <small>USD / {r.unit || "tonne"}</small>
-                    </>
-                  ) : (
-                    "Ask for pricing"
-                  )}
-                </p>
-                {r.moq_tons != null && (
-                  <p className="muted">
-                    Min. order {fmtQty(r.moq_tons, r.unit)}
-                  </p>
-                )}
-                {r.pack_sizes && (
-                  <p className="muted pack-description">{r.pack_sizes}</p>
-                )}
-                {r.demo ? (
-                  <span className="sample-caption">
-                    Preview product • Not available to order
-                  </span>
-                ) : (
-                  <Link
-                    className="product-request"
-                    href={`/dashboard?c=${encodeURIComponent(r.commodity)}&unit=${encodeURIComponent(r.unit || "tonne")}`}
-                  >
-                    Request {r.sale_type === "retail" ? "to buy" : "a quote"} ↗
-                  </Link>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-        {!shown.length && (
-          <div className="empty-state">
-            <span aria-hidden="true">⌕</span>
-            <h3>
-              {filters.savedOnly
-                ? "Your collection starts here."
-                : "A different discovery awaits."}
-            </h3>
-            <p>
-              {filters.savedOnly
-                ? "Save products with the heart button, or adjust your filters."
-                : "Try a broader search or another category."}
-            </p>
-            <button className="btn" onClick={() => setFilters(initial)}>
-              Explore all products
-            </button>
-          </div>
-        )}
-      </section>
-      <section className="heritage-section" id="heritage">
-        <div>
-          <p className="eyebrow">MORE THAN A NAME. A BEGINNING.</p>
-          <h2>
-            October first.
-            <br />
-            <em>Forever forward.</em>
-          </h2>
-          <p>
-            On 1 October 1960, Nigeria became independent. Our name honours that
-            beginning. Our marketplace champions what comes next.
-          </p>
-          <p className="heritage-date">01 / 10 / 1960</p>
-        </div>
-        <div className="heritage-statement">
-          <span aria-hidden="true">✳</span>
-          <h3>
-            A world of potential.
-            <br />A place to call home.
-          </h3>
-          <p>
-            We connect Nigerian farmers, food producers, artisans and businesses
-            with international buyers and the diaspora. One product. One
-            relationship. One possibility at a time.
-          </p>
-          <Link href="/guide">Your guide to buying internationally ↗</Link>
-        </div>
-      </section>
-      <section id="bulk" className="trade-section">
-        <div>
-          <p className="eyebrow">LOCAL ROOTS. GLOBAL AMBITION.</p>
-          <h2>
-            Good things grow
-            <br />
-            when we connect.
-          </h2>
-          <p>
-            Find your supplier, agree your specifications, and coordinate the
-            journey. Build your next trade connection in Nigeria.
-          </p>
-          <Link className="btn" href="/dashboard">
-            Start a sourcing request ↗
-          </Link>
-        </div>
-        <ol className="trade-steps">
-          <li>
-            <span>01</span>
-            <div>
-              <h3>Discover & shortlist</h3>
-              <p>Explore products and save the ones that fit your needs.</p>
-            </div>
-          </li>
-          <li>
-            <span>02</span>
-            <div>
-              <h3>Request & compare</h3>
-              <p>Send your requirements and compare supplier quotations.</p>
-            </div>
-          </li>
-          <li>
-            <span>03</span>
-            <div>
-              <h3>Pay, coordinate & track</h3>
-              <p>
-                Review your order, request logistics quotes, and follow shipment
-                updates.
+            </details>
+            {demo && (
+              <p className="sample-notice" role="status">
+                {failed ? "Live listings are temporarily unavailable. " : ""}
+                Explore sample listings.{" "}
+                {isConfigured
+                  ? "Published products appear here when available."
+                  : "Live buying and accounts require marketplace setup."}{" "}
+                Sample prices are illustrative.
               </p>
-              <Link href="/providers">Explore logistics partners ↗</Link>
+            )}
+            <div className="result-summary" aria-live="polite">
+              {loading
+                ? "Loading latest products..."
+                : `${shown.length} ${shown.length === 1 ? "discovery" : "discoveries"}${filters.savedOnly ? " in your collection" : " from Nigeria"}`}
+              <span>Retail packs to container loads</span>
             </div>
-          </li>
-        </ol>
+            {notice && <p role="status">{notice}</p>}
+            <div className="products discovery-products">
+              {shown.map((r) => (
+                <article className="prod" key={r.id}>
+                  <div className="product-visual">
+                    <Thumb url={r.image_url} commodity={r.commodity} />
+                    <span className="product-type">
+                      {r.demo
+                        ? "SAMPLE"
+                        : r.sale_type === "retail"
+                          ? "RETAIL"
+                          : "BULK"}
+                    </span>
+                    <button
+                      className={`save-product ${saved.includes(r.id) ? "is-saved" : ""}`}
+                      aria-label={`${saved.includes(r.id) ? "Unsave" : "Save"} ${r.title}`}
+                      aria-pressed={saved.includes(r.id)}
+                      onClick={() => toggleSaved(r.id)}
+                    >
+                      {saved.includes(r.id) ? "♥" : "♡"}
+                    </button>
+                  </div>
+                  <div className="info">
+                    <p className="product-origin">
+                      {r.origin_state
+                        ? `${r.origin_state}, Nigeria`
+                        : "Nigerian food collection"}
+                    </p>
+                    <h3>{r.title}</h3>
+                    <p className="supplier-name">
+                      {r.profiles?.company || "Independent supplier"}{" "}
+                      {r.profiles?.verified && (
+                        <span className="v">Verified</span>
+                      )}
+                    </p>
+                    <p className="price">
+                      {r.price_usd_per_ton != null ? (
+                        <>
+                          ${Number(r.price_usd_per_ton).toLocaleString()}{" "}
+                          <small>USD / {r.unit || "tonne"}</small>
+                        </>
+                      ) : (
+                        "Ask for pricing"
+                      )}
+                    </p>
+                    {r.moq_tons != null && (
+                      <p className="muted">
+                        Min. order {fmtQty(r.moq_tons, r.unit)}
+                      </p>
+                    )}
+                    {r.pack_sizes && (
+                      <p className="muted pack-description">{r.pack_sizes}</p>
+                    )}
+                    {r.demo ? (
+                      <span className="sample-caption">
+                        Preview product • Not available to order
+                      </span>
+                    ) : (
+                      <Link
+                        className="product-request"
+                        href={`/dashboard?c=${encodeURIComponent(r.commodity)}&unit=${encodeURIComponent(r.unit || "tonne")}`}
+                      >
+                        Request{" "}
+                        {r.sale_type === "retail" ? "to buy" : "a quote"} ↗
+                      </Link>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+            {!shown.length && (
+              <div className="empty-state">
+                <span aria-hidden="true">⌕</span>
+                <h3>
+                  {filters.savedOnly
+                    ? "Your collection starts here."
+                    : "A different discovery awaits."}
+                </h3>
+                <p>
+                  {filters.savedOnly
+                    ? "Save products with the heart button, or adjust your filters."
+                    : "Try a broader search or another category."}
+                </p>
+                <button className="btn" onClick={() => setFilters(initial)}>
+                  Explore all products
+                </button>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+      <section className="market-help">
+        <div>
+          <strong>Find Nigerian suppliers</strong>
+          <span>Explore producer profiles and product catalogues.</span>
+          <Link href="/suppliers">Browse suppliers ↗</Link>
+        </div>
+        <div>
+          <strong>Plan your shipment</strong>
+          <span>Find freight, inspection and clearing partners.</span>
+          <Link href="/providers">Explore logistics ↗</Link>
+        </div>
+        <div>
+          <strong>New to international buying?</strong>
+          <span>Understand quotations, payments and delivery.</span>
+          <Link href="/guide">Read the buyer guide ↗</Link>
+        </div>
       </section>
       <section className="seller-callout">
         <span aria-hidden="true">✳</span>

@@ -2,7 +2,12 @@
 import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { supabase, isConfigured, PROVIDER_TYPES } from "@/lib/supabase";
+import {
+  supabase,
+  isConfigured,
+  getAuthProviders,
+  PROVIDER_TYPES,
+} from "@/lib/supabase";
 import { safeNext } from "@/lib/navigation";
 
 const roles = [
@@ -44,6 +49,8 @@ function LoginForm() {
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState("");
   useEffect(() => {
     const p = params;
     if (roles.some((r) => r.id === p.get("role"))) setRole(p.get("role")!);
@@ -65,6 +72,7 @@ function LoginForm() {
     setBusy(true);
     setFailed(false);
     setMsg("");
+    setNeedsConfirmation(false);
     try {
       if (mode === "reset") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -95,6 +103,8 @@ function LoginForm() {
         });
         if (error) throw error;
         if (!data.session) {
+          setConfirmationEmail(email);
+          setNeedsConfirmation(true);
           setMsg(
             "Check your email to confirm your account. After confirmation, you can continue to your dashboard.",
           );
@@ -107,14 +117,80 @@ function LoginForm() {
         });
         if (error) throw error;
       }
-      router.push(next);
+      router.push(`/auth/confirm?next=${encodeURIComponent(next)}`);
       router.refresh();
     } catch (err) {
+      if (err instanceof Error && /email not confirmed/i.test(err.message)) {
+        setConfirmationEmail(email);
+        setNeedsConfirmation(true);
+      }
       setFailed(true);
       setMsg(
         err instanceof Error
           ? err.message
           : "Unable to connect. Please try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function google() {
+    if (busy) return;
+    if (!isConfigured) {
+      setFailed(true);
+      setMsg(
+        "Sign-in is temporarily unavailable. The marketplace operator needs to connect account services.",
+      );
+      return;
+    }
+    setBusy(true);
+    setFailed(false);
+    setMsg("");
+    try {
+      const providers = await getAuthProviders();
+      if (!providers.google) throw new Error("Google provider is not enabled.");
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(next)}&role=${encodeURIComponent(role)}`,
+          queryParams: { prompt: "select_account" },
+        },
+      });
+      if (error) throw error;
+    } catch (err) {
+      setFailed(true);
+      setMsg(
+        err instanceof Error &&
+          /provider|not enabled|unsupported/i.test(err.message)
+          ? "Google sign-in is not enabled for this marketplace yet. Use email sign-in or contact the marketplace operator."
+          : err instanceof Error
+            ? err.message
+            : "Unable to connect to Google. Please try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function resend() {
+    if (!confirmationEmail || busy) return;
+    setBusy(true);
+    setFailed(false);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: confirmationEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(next)}`,
+        },
+      });
+      if (error) throw error;
+      setMsg("Confirmation email requested. Check your inbox and spam folder.");
+    } catch (err) {
+      setFailed(true);
+      setMsg(
+        err instanceof Error
+          ? err.message
+          : "Unable to resend the confirmation email.",
       );
     } finally {
       setBusy(false);
@@ -127,6 +203,7 @@ function LoginForm() {
     router.replace(`/login${query.size ? `?${query}` : ""}`, { scroll: false });
     setMsg("");
     setFailed(false);
+    setNeedsConfirmation(false);
   }
   return (
     <div className="auth-layout">
@@ -171,8 +248,44 @@ function LoginForm() {
         </p>
         {!isConfigured && (
           <p className="sample-notice">
-            Account services are awaiting marketplace configuration.
+            Sign-in is temporarily unavailable. The marketplace operator needs
+            to connect account services. You can still browse products.
           </p>
+        )}
+        {mode !== "reset" && (
+          <>
+            <button
+              type="button"
+              className="google-auth"
+              onClick={google}
+              disabled={busy || !isConfigured}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="#4285F4"
+                  d="M21.6 12.2c0-.7-.1-1.5-.2-2.2H12v4.2h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.5Z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5a6 6 0 0 1-9-3.1H3.1v2.6A10 10 0 0 0 12 22Z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M6.4 14a6 6 0 0 1 0-4V7.4H3.1a10 10 0 0 0 0 9.2L6.4 14Z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 6c1.5 0 2.8.5 3.9 1.5L18.8 4A10 10 0 0 0 3.1 7.4L6.4 10A6 6 0 0 1 12 6Z"
+                />
+              </svg>
+              {busy ? "Please wait..." : "Continue with Google"}
+            </button>
+            <p className="muted" style={{ fontSize: ".75rem" }}>
+              New here? Google creates your account, then you choose your
+              account type and complete your profile.
+            </p>
+            <div className="auth-divider">or continue with email</div>
+          </>
         )}
         <form onSubmit={submit} aria-busy={busy}>
           {mode === "signup" && (
@@ -318,6 +431,11 @@ function LoginForm() {
           >
             {msg}
           </p>
+        )}
+        {needsConfirmation && (
+          <button className="link auth-resend" disabled={busy} onClick={resend}>
+            Resend confirmation email
+          </button>
         )}
         <div className="actions">
           <button

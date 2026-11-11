@@ -4,6 +4,7 @@ import { paymentMatches } from "./payment-rules";
 export function paymentConfig() {
   const url =
     process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_SUPABASE_URL ||
     process.env.NEXT_PUBLIC_NEXT_PUBLIC_SUPABASE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const secret = process.env.PAYSTACK_SECRET_KEY;

@@ -3,6 +3,54 @@ import assert from "node:assert/strict";
 import { filterListings } from "../lib/discovery.ts";
 import { safeNext } from "../lib/navigation.ts";
 import { productAmount, paymentMatches } from "../lib/payment-rules.ts";
+import { readAuthProviders, resolvePublicConfig } from "../lib/auth-config.ts";
+
+test("Google sign-in checks provider availability instead of redirecting people to a disabled provider", async () => {
+  const config = resolvePublicConfig(
+    "https://example.supabase.co",
+    "sb_publishable_example",
+  );
+  const disabled = await readAuthProviders(
+    config,
+    async () =>
+      new Response(
+        JSON.stringify({ external: { email: true, google: false } }),
+      ),
+  );
+  assert.deepEqual(disabled, { google: false, email: true });
+  const enabled = await readAuthProviders(
+    config,
+    async () =>
+      new Response(JSON.stringify({ external: { email: true, google: true } })),
+  );
+  assert.equal(enabled.google, true);
+  await assert.rejects(
+    readAuthProviders(config, async () => new Response("", { status: 503 })),
+  );
+});
+
+test("account configuration accepts publishable keys and local projects but safely handles missing or placeholder settings", () => {
+  assert.equal(
+    resolvePublicConfig("https://example.supabase.co", "sb_publishable_example")
+      .configured,
+    true,
+  );
+  assert.equal(
+    resolvePublicConfig("http://localhost:54321", "local-anon-key").configured,
+    true,
+  );
+  for (const [url, key] of [
+    ["", ""],
+    ["not a url", "key"],
+    ["https://your-project.supabase.co", "your-anon-or-publishable-key"],
+    ["https://example.supabase.co", "missing-anon-key"],
+    ["ftp://example.com", "key"],
+  ]) {
+    const config = resolvePublicConfig(url, key);
+    assert.equal(config.configured, false);
+    assert.equal(config.url, "http://localhost:54321");
+  }
+});
 
 const base = {
   query: "",

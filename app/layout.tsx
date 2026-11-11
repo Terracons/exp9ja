@@ -33,6 +33,7 @@ export default function RootLayout({
               <p>Our roots. Our richness. Our marketplace.</p>
             </div>
             <div className="footer-links">
+              <Link href="/about">About 1960.com</Link>
               <Link href="/guide">Buying & shipping guide</Link>
               <Link href="/suppliers">Find suppliers</Link>
               <Link href="/providers">Logistics partners</Link>

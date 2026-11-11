@@ -6,6 +6,7 @@ A Nigerian export marketplace for international buyers and the diaspora. The ide
 
 - Responsive marketplace with product, company and origin search; category, retail/bulk, origin and verification filters; price and name sorting; saved products stored on the visitor's device.
 - Separate buyer, supplier and logistics partner registration, email confirmation, sign-in, password recovery and editable business profiles.
+- Google sign-in with a one-time buyer, supplier or logistics profile setup, plus confirmation-email resending for email accounts.
 - Supplier product publishing, editing and removal, listing photos, public supplier catalogues and searchable supplier/logistics directories.
 - Buyer sourcing requests, supplier quotations and price revisions, quotation messaging, acceptance into orders, private documents and supplier-reported tracking.
 - Logistics requests from confirmed orders, pickup/destination details, provider quotations, comparisons and assignment.
@@ -33,8 +34,9 @@ For a **new database**, run these files in the Supabase SQL Editor in order:
 
 1. `supabase/naijabulk_all.sql` (the consolidated original schema, storage, roles, messages and logistics).
 2. `supabase/1960_upgrade.sql` (new profile editing, listing edits, validation, transaction locks, document checks and payment records).
+3. `supabase/1960_google_auth.sql` (Google-compatible signup trigger and one-time account onboarding).
 
-For an **existing database with the consolidated schema already applied**, run only `supabase/1960_upgrade.sql`. If your database was set up from individual legacy SQL files, ensure all original migrations and the retail/unit additions at the end of `naijabulk_all.sql` are present first. Do not run the consolidated base over existing tables. The upgrade is a one-time transactional migration; keep a record of applying it.
+For an **existing database with the consolidated schema already applied**, apply only the upgrades you have not yet applied, in order: `supabase/1960_upgrade.sql`, then `supabase/1960_google_auth.sql`. If the first upgrade has already been applied, run only the Google auth upgrade. If your database was set up from individual legacy SQL files, ensure all original migrations and the retail/unit additions at the end of `naijabulk_all.sql` are present first. Do not rerun the consolidated base or previously applied upgrades. Keep a record of applying each transactional migration.
 
 In Supabase Authentication:
 
@@ -45,6 +47,24 @@ In Supabase Authentication:
 - Set a suitable password policy, at least the app's 10-character signup minimum.
 
 The signup trigger creates each profile. Only an operator should set `is_admin` in the database. Admins review supplier evidence and manage verification at `/admin`. Editing company identity or provider service resets verification. Payment never grants verification.
+
+## Google sign-in and account troubleshooting
+
+Google sign-in must be enabled in your Supabase project. The application button cannot enable a provider or create Google OAuth credentials automatically.
+
+1. Apply `supabase/1960_google_auth.sql`. Without it, Google registrations may fail because the older signup trigger requires business metadata Google does not supply.
+2. In Google Cloud Console, configure an OAuth consent screen and a **Web application** OAuth client. Use the Supabase Google provider panel's callback URL (usually `https://<project-ref>.supabase.co/auth/v1/callback`) as the Google client's authorized redirect URI. This is different from the application's callback URL.
+3. Add your deployed application's origin to the Google client's authorized JavaScript origins. Follow Google's publishing/verification requirements, or add testers while the OAuth app remains in testing.
+4. In Supabase Authentication > Sign In / Providers > Google, enable Google and enter the OAuth client ID and client secret. Keep the Google client secret in Supabase, never in browser code or this repository.
+5. In Supabase URL Configuration, set the production Site URL and allow the application callback, including its query parameters, for example `https://<your-domain>/auth/confirm**`. Add `http://localhost:3010/auth/confirm**` only for local development. Add the password reset redirect as described above.
+6. Set `NEXT_PUBLIC_SUPABASE_URL` and either `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` on the deployment host, then **rebuild/redeploy**. Next.js embeds public environment variables at build time.
+7. Test a new Google account, complete its profile, then sign out and sign back in. Existing members retain their account role; only a new incomplete account can choose a role during onboarding. Test email signup, confirmation, confirmation resending and password recovery separately.
+
+Email accounts require confirmation when the project's confirmation setting is enabled. If emails do not arrive, check Supabase email delivery configuration, provider limits and the recipient's spam folder. A disabled account button with a setup notice means the public project environment variables are missing or placeholders. A "Database error saving new user" generally requires checking the signup trigger and migration status in Supabase logs. Do not disable confirmation to conceal a delivery problem.
+
+Official reference: [Supabase Google sign-in setup](https://supabase.com/docs/guides/auth/social-sign-in/auth-google).
+
+The homepage places search, category navigation, featured product collections and filtered listings first. The independence story lives at `/about`. Collections are curated navigation, not fabricated sales or trending rankings.
 
 ## Enable payments
 

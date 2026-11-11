@@ -1,20 +1,24 @@
 import { createClient } from "@supabase/supabase-js";
+import { readAuthProviders, resolvePublicConfig } from "./auth-config";
 
 // Reads the standard names first, then the names the Vercel Supabase integration creates.
 // Each variable is written out in full so Next.js can inline it into the browser bundle.
 const url =
   process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.NEXT_PUBLIC_SUPABASE_SUPABASE_URL ||
   process.env.NEXT_PUBLIC_NEXT_PUBLIC_SUPABASE_SUPABASE_URL ||
-  "http://localhost:54321";
+  "";
 const key =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_SUPABASE_ANON_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_SUPABASE_PUBLISHABLE_KEY ||
-  "missing-anon-key";
+  "";
 
-export const supabase = createClient(url, key);
-export const isConfigured =
-  url !== "http://localhost:54321" && key !== "missing-anon-key";
+const config = resolvePublicConfig(url, key);
+export const supabase = createClient(config.url, config.key);
+export const isConfigured = config.configured;
+export const getAuthProviders = () => readAuthProviders(config);
 
 export const CATEGORIES = [
   {
