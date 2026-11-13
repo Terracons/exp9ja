@@ -10,6 +10,7 @@ export default function Directory({ kind }: { kind: "supplier" | "provider" }) {
     [type, setType] = useState(""),
     [verified, setVerified] = useState(false);
   useEffect(() => {
+    setQuery(new URLSearchParams(window.location.search).get("q") || "");
     if (!isConfigured) return;
     let active = true;
     supabase

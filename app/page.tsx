@@ -10,6 +10,7 @@ import {
 } from "@/lib/supabase";
 import { filterListings, type Listing, type Filters } from "@/lib/discovery";
 import Thumb from "@/components/Thumb";
+import { useRouter } from "next/navigation";
 
 const initial: Filters = {
   query: "",
@@ -21,6 +22,8 @@ const initial: Filters = {
   sort: "newest",
 };
 export default function Home() {
+  const router = useRouter();
+  const [searchScope, setSearchScope] = useState("products");
   const [rows, setRows] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(isConfigured);
   const [failed, setFailed] = useState(false);
@@ -74,6 +77,7 @@ export default function Home() {
   const update = (patch: Partial<Filters>) =>
     setFilters((current) => ({ ...current, ...patch }));
   function explore(category = "") {
+    setSearchScope("products");
     update({ category, query: "", savedOnly: false });
     document.getElementById("shop")?.scrollIntoView({
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -93,7 +97,8 @@ export default function Home() {
       <section className="market-search" aria-labelledby="hero-title">
         <div className="market-search-heading">
           <div>
-            <h1 id="hero-title">What are you looking for?</h1>
+            <p className="trade-kicker">FROM NIGERIA. FOR THE WORLD.</p>
+            <h1 id="hero-title">Find your next Nigerian discovery.</h1>
           </div>
           <span className="market-origin">
             <span className="flag" aria-hidden="true" /> Nigerian products.
@@ -105,6 +110,12 @@ export default function Home() {
           role="search"
           onSubmit={(e) => {
             e.preventDefault();
+            if (searchScope !== "products") {
+              router.push(
+                `/${searchScope}?q=${encodeURIComponent(filters.query.trim())}`,
+              );
+              return;
+            }
             document.getElementById("shop")?.scrollIntoView({
               behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
                 .matches
@@ -113,10 +124,24 @@ export default function Home() {
             });
           }}
         >
-          <span aria-hidden="true">⌕</span>
+          <select
+            aria-label="Search in"
+            value={searchScope}
+            onChange={(e) => setSearchScope(e.target.value)}
+          >
+            <option value="products">Products</option>
+            <option value="suppliers">Suppliers</option>
+            <option value="providers">Logistics</option>
+          </select>
           <input
             aria-label="Search products, suppliers or states"
-            placeholder="Search Nigerian products, suppliers or states"
+            placeholder={
+              searchScope === "products"
+                ? "Try garri, cocoa, adire..."
+                : searchScope === "suppliers"
+                  ? "Search supplier names or specialities"
+                  : "Search logistics companies or services"
+            }
             value={filters.query}
             onChange={(e) => update({ query: e.target.value })}
           />
@@ -130,6 +155,7 @@ export default function Home() {
             <button
               key={term}
               onClick={() => {
+                setSearchScope("products");
                 setFilters({ ...initial, query: term });
                 document.getElementById("shop")?.scrollIntoView();
               }}
@@ -139,6 +165,23 @@ export default function Home() {
           ))}
         </div>
       </section>
+      <nav className="trade-shortcuts" aria-label="Sourcing shortcuts">
+        <a href="#categories">
+          <span aria-hidden="true">▦</span> Shop by category
+        </a>
+        <Link href="/suppliers">
+          <span aria-hidden="true">◉</span> Find suppliers
+        </Link>
+        <Link href="/dashboard">
+          <span aria-hidden="true">↗</span> Request quotations
+        </Link>
+        <Link href="/providers">
+          <span aria-hidden="true">▱</span> Shipping & inspection
+        </Link>
+        <Link href="/guide">
+          <span aria-hidden="true">◎</span> Buyer guide
+        </Link>
+      </nav>
       <div className="market-layout">
         <aside
           className="market-categories"
@@ -178,59 +221,44 @@ export default function Home() {
           </div>
         </aside>
         <div className="market-main">
-          <section
-            className="market-collections"
-            aria-labelledby="collections-title"
-          >
-            <h2 id="collections-title">Featured collections</h2>
-            <div className="collection-grid">
-              {[
-                {
-                  title: "A taste of home",
-                  detail: "Foodstuff & retail packs",
-                  sale: "retail",
-                },
-                {
-                  title: "Source in bulk",
-                  detail: "Agricultural commodities",
-                  sale: "bulk",
-                },
-                {
-                  title: "Latest arrivals",
-                  detail: "Explore the full marketplace",
-                  sale: "",
-                },
-              ].map((collection) => (
-                <button
-                  key={collection.title}
-                  className="collection-card"
-                  onClick={() => {
-                    setFilters({ ...initial, sale: collection.sale });
-                    document.getElementById("shop")?.scrollIntoView();
-                  }}
-                >
-                  <span className="collection-title">
-                    {collection.title} <span aria-hidden="true">↗</span>
-                  </span>
-                  <span className="collection-detail">{collection.detail}</span>
-                  <span className="collection-thumbs">
-                    {source
-                      .filter(
-                        (r) =>
-                          !collection.sale ||
-                          (r.sale_type || "bulk") === collection.sale,
-                      )
-                      .slice(0, 2)
-                      .map((r) => (
-                        <Thumb
-                          key={r.id}
-                          url={r.image_url}
-                          commodity={r.commodity}
-                        />
-                      ))}
-                  </span>
-                </button>
-              ))}
+          <section className="sourcing-banner" aria-labelledby="sourcing-title">
+            <div>
+              <p className="trade-kicker">THE 1960 COLLECTION</p>
+              <h2 id="sourcing-title">
+                Rooted here.
+                <br />
+                <span>Ready for everywhere.</span>
+              </h2>
+              <p>
+                Everyday favourites. Exceptional raw materials.
+                <br />
+                Discover Nigerian products, from retail to bulk.
+              </p>
+              <a href="#shop" className="btn">
+                Explore the marketplace <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+            <div className="trade-art" aria-hidden="true">
+              <div className="trade-orbit" />
+              <span className="art-location">NIGERIA ↗ THE WORLD</span>
+              <div className="art-package package-back">
+                <span>MADE IN</span>
+                <strong>NIGERIA</strong>
+                <i />
+              </div>
+              <div className="art-package package-front">
+                <span>THE GOOD STUFF</span>
+                <strong>
+                  1960<span>.com</span>
+                </strong>
+                <i />
+                <small>GROWN. CRAFTED. CONNECTED.</small>
+              </div>
+              <span className="art-stamp">
+                LOCAL ORIGINS
+                <br />
+                GLOBAL POSSIBILITIES
+              </span>
             </div>
           </section>
           <section className="discovery-section market-products" id="shop">
@@ -312,6 +340,51 @@ export default function Home() {
                 </button>
               </div>
             </details>
+            <div className="active-filters" aria-label="Active filters">
+              {(
+                [
+                  ["query", filters.query && `Search: ${filters.query}`],
+                  ["category", filters.category],
+                  [
+                    "sale",
+                    filters.sale &&
+                      (filters.sale === "retail"
+                        ? "Retail packs"
+                        : "Bulk sourcing"),
+                  ],
+                  ["origin", filters.origin],
+                  ["verified", filters.verified && "Verified suppliers"],
+                  ["savedOnly", filters.savedOnly && "Saved products"],
+                ] as const
+              )
+                .filter(([, label]) => label)
+                .map(([key, label]) => (
+                  <button
+                    key={key}
+                    aria-label={`Remove ${label} filter`}
+                    onClick={() =>
+                      update({
+                        [key]: typeof initial[key] === "boolean" ? false : "",
+                      })
+                    }
+                  >
+                    {label} <span aria-hidden="true">×</span>
+                  </button>
+                ))}
+              {(filters.query ||
+                filters.category ||
+                filters.sale ||
+                filters.origin ||
+                filters.verified ||
+                filters.savedOnly) && (
+                <button
+                  className="clear-filters"
+                  onClick={() => setFilters(initial)}
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
             {demo && (
               <p className="sample-notice" role="status">
                 {failed ? "Live listings are temporarily unavailable. " : ""}
@@ -416,6 +489,61 @@ export default function Home() {
                 </button>
               </div>
             )}
+          </section>
+          <section
+            className="market-collections"
+            aria-labelledby="collections-title"
+          >
+            <h2 id="collections-title">Featured collections</h2>
+            <div className="collection-grid">
+              {[
+                {
+                  title: "A taste of home",
+                  detail: "Explore retail packs",
+                  sale: "retail",
+                },
+                {
+                  title: "Source in bulk",
+                  detail: "Explore bulk products",
+                  sale: "bulk",
+                },
+                {
+                  title: "Latest arrivals",
+                  detail: "Explore the full marketplace",
+                  sale: "",
+                },
+              ].map((collection) => (
+                <button
+                  key={collection.title}
+                  className="collection-card"
+                  onClick={() => {
+                    setFilters({ ...initial, sale: collection.sale });
+                    document.getElementById("shop")?.scrollIntoView();
+                  }}
+                >
+                  <span className="collection-title">
+                    {collection.title} <span aria-hidden="true">↗</span>
+                  </span>
+                  <span className="collection-detail">{collection.detail}</span>
+                  <span className="collection-thumbs">
+                    {source
+                      .filter(
+                        (r) =>
+                          !collection.sale ||
+                          (r.sale_type || "bulk") === collection.sale,
+                      )
+                      .slice(0, 2)
+                      .map((r) => (
+                        <Thumb
+                          key={r.id}
+                          url={r.image_url}
+                          commodity={r.commodity}
+                        />
+                      ))}
+                  </span>
+                </button>
+              ))}
+            </div>
           </section>
         </div>
       </div>

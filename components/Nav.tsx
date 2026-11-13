@@ -32,6 +32,7 @@ export default function Nav() {
         onClick={() => setOpen(false)}
       >
         <Link href="/#shop">Marketplace</Link>
+        <Link href="/dashboard">Request a quote</Link>
         <Link
           href="/suppliers"
           aria-current={pathname === "/suppliers" ? "page" : undefined}
