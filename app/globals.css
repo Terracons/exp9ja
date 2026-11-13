@@ -2421,3 +2421,33 @@ main:has(.market-search) {
     border-right: 1px solid var(--line);
   }
 }
+/* The homepage hero spans the viewport; the product catalogue has its own grid. */
+main:has(.home-masthead) {
+  max-width: none;
+  padding: 0 0 4rem;
+}
+.home-catalogue {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1rem clamp(1rem, 4vw, 4rem) 0;
+}
+.home-catalogue .market-products {
+  margin-top: 0;
+}
+.home-catalogue #shop,
+.home-catalogue #categories {
+  scroll-margin-top: 1rem;
+}
+@media (min-width: 1024px) {
+  .home-catalogue .market-categories {
+    top: 1rem;
+  }
+}
+body:has(.home-masthead) footer {
+  padding-bottom: 6rem;
+}
+@media (min-width: 1024px) {
+  body:has(.home-masthead) footer {
+    padding-bottom: 2rem;
+  }
+}

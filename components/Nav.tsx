@@ -11,6 +11,7 @@ export default function Nav() {
   const { total } = useUnread(profile?.id);
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  if (pathname === "/") return null;
   return (
     <header className="nav">
       <Link href="/" className="brand" aria-label="1960.com home">
